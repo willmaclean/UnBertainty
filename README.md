@@ -3,13 +3,15 @@
 
 This is UnBertainty, a Python module for manipulating radiology reports and analysing uncertainty in their language.
 
-It also includes code for fine-tuning BioBert on your own suite of reports and labelling them as uncertain or not.
+It also includes a script for fine-tuning BioBert on your own suite of reports and labelling them as uncertain or not.
 
 A revolution in radiology is underway thanks to machine learning. In a variety of different problem-settings, the texts of radiology reports need to be used to extract information or provide labels. However, hedging and uncertainty in radiology are significant problems for information extraction, since they can make it seem as if multiple conditions are present in a scan when in fact they may not be.
 
 UnBertainty is a step towards solving this problem, as it provides a soft flag for hedging for documents in a corpus, so that these flagged documents can be managed in an appropriate manner.
 
 ### What does it do?
+
+Unbertainty has some tools for handling radiology reports like uncertainty detection, conclusion splitting, and tokenisation.
 
 UnBertainty has a rules-based uncertainty detection mechanism, using uncertainty cues farmed from the academic literature.
 

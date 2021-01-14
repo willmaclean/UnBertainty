@@ -1,6 +1,6 @@
 """
 
-The main pipeline.
+The main pipeline. This is actually meant to be run as a script, so is not really part of the main module.
 
 Steps:
 
@@ -12,7 +12,7 @@ Steps:
 
 args:
 
-argv[1] = the name of the file with texts. NOT the path. Include your csvs in this directory!!
+argv[1] = the name of the file with texts. NOT the path. 
 
 """
 import sys
@@ -136,9 +136,6 @@ if __name__ == '__main__':
     # For each epoch...
     for epoch_i in range(0, epochs):
 
-        # ========================================
-        #               Training
-        # ========================================
 
         # Perform one full pass over the training set.
 
@@ -152,10 +149,7 @@ if __name__ == '__main__':
         # Reset the total loss for this epoch.
         total_loss = 0
 
-        # Put the model into training mode. Don't be mislead--the call to
-        # `train` just changes the *mode*, it doesn't *perform* the training.
-        # `dropout` and `batchnorm` layers behave differently during training
-        # vs. test (source: https://stackoverflow.com/questions/51433378/what-does-model-train-do-in-pytorch)
+        # Put the model into training mode. 
         model.train()
 
         # For each batch of training data...
@@ -182,38 +176,25 @@ if __name__ == '__main__':
             b_input_mask = batch[1].to(device)
             b_labels = batch[2].to(device)
 
-            # Always clear any previously calculated gradients before performing a
-            # backward pass. PyTorch doesn't do this automatically because
-            # accumulating the gradients is "convenient while training RNNs".
-            # (source: https://stackoverflow.com/questions/48001598/why-do-we-need-to-call-zero-grad-in-pytorch)
+            # clearing previously calculated gradients
             model.zero_grad()
 
-            # Perform a forward pass (evaluate the model on this training batch).
-            # This will return the loss (rather than the model output) because we
-            # have provided the `labels`.
-            # The documentation for this `model` function is here:
-            # https://huggingface.co/transformers/v2.2.0/model_doc/bert.html#transformers.BertForSequenceClassification
+            # Perform a forward pass (evaluate the model on this training batch
             outputs = model(b_input_ids,
                         attention_mask=b_input_mask,
                         labels=b_labels, return_dict=True)
 
-            # The call to `model` always returns a tuple, so we need to pull the
-            # loss value out of the tuple.
-            loss = outputs.loss
+           
             attention_output = outputs.attentions
             logits = outputs.logits
 
-            # Accumulate the training loss over all of the batches so that we can
-            # calculate the average loss at the end. `loss` is a Tensor containing a
-            # single value; the `.item()` function just returns the Python value
-            # from the tensor.
+            # adding loss to loss over all batches
             total_loss += loss.item()
 
             # Perform a backward pass to calculate the gradients.
             loss.backward()
 
-            # Clip the norm of the gradients to 1.0.
-            # This is to help prevent the "exploding gradients" problem.
+            # set the norm of the gradients to 1.0.
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
             # Update parameters and take a step using the computed gradient.
@@ -230,12 +211,6 @@ if __name__ == '__main__':
         # Store the loss value for plotting the learning curve.
         loss_values.append(avg_train_loss)
 
-
-        # ========================================
-        #               Validation
-        # ========================================
-        # After the completion of each training epoch, measure our performance on
-        # our validation set.
 
         sys.stdout.write("")
         sys.stdout.write("Running Validation...")
@@ -264,18 +239,11 @@ if __name__ == '__main__':
             with torch.no_grad():
 
                 # Forward pass, calculate logit predictions.
-                # This will return the logits rather than the loss because we have
-                # not provided labels.
-                # token_type_ids is the same as the "segment ids", which
-                # differentiates sentence 1 and 2 in 2-sentence tasks.
-                # The documentation for this `model` function is here:
-                # https://huggingface.co/transformers/v2.2.0/model_doc/bert.html#transformers.BertForSequenceClassification
                 outputs = model(b_input_ids,
                                 token_type_ids=None,
                                 attention_mask=b_input_mask)
 
-            # Get the "logits" output by the model. The "logits" are the output
-            # values prior to applying an activation function like the softmax.
+            # Get the "logits" output by the model. 
             logits = outputs[0]
 
             # Move logits and labels to CPU

@@ -1,7 +1,7 @@
 # unBertainty
 
 
-This is UnBertainty, a Python module for manipulating radiology reports and analysing uncertainty in their language.
+This is UnBertainty, a set of tools written in python for handling uncertainty in radiology reports.
 
 It also includes a script for fine-tuning BioBert on your own suite of reports and labelling them as uncertain or not.
 

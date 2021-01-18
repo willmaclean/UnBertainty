@@ -4,19 +4,20 @@ import os
 from clean import TextPreprocessor
 from spacy.pipeline import SentenceSegmenter
 from spacy.tokenizer import Tokenizer
-from spacy.lookups import Lookups
 from spacy.lemmatizer import Lemmatizer
 from typing import List
 from collections import defaultdict
-import spacy
 from spacy.pipeline import merge_entities
 from spacy.matcher import Matcher, DependencyMatcher
+from spacy.vocab import Vocab
 
 def lemma_text(word):
     
     return nlp.vocab[word.lemma].text
 
 def default_rules(doc):
+
+    nlp = spacy.load('en_core_web_sm')
     
     #these are the default uncertainty patterns to spot
     
@@ -25,45 +26,59 @@ def default_rules(doc):
     aux = ['may', 'would', 'could']
     matches=[]
     
+matches=[]
+    
     for word in doc:
         
-        if word.lemma in questionable_hashes:
-    
-        #putting the pattern and the matching text  together
-            matches.append((nlp.vocab[word.lemma].text, word.text)) 
+#         iterates through each token in the spacy-tokenised doc and 
+#         checks if there is a match with a word or with a dependency pattern
+        
+    #single adjectives and adverbs which denote uncertainty of observation
+        if lemma_text(word) in ['possible','possibly','presumably','probably','questionable',\
+                                'suspect','suspected','suspicious', 'probable', 'potential']:
 
-        elif (word.pos_ == 'AUX') & (word.lemma in aux):
+            matches.append((lemma_text(word), 'single words showing questionability: possible, probably, etc.')) 
+        
+        #checking for modality
+        elif (word.pos_ == 'AUX') & (lemma_text(word) in ['may', 'would', 'could']):
 
-            matches.append((nlp.vocab[word.lemma].text, word.text)) 
+            matches.append((lemma_text(word), 'modality')) 
 
+        #question or suggestion in attributive dependency relation
         elif (lemma_text(word) in ['question','suggestion']) & (word.dep_ == 'attr'):
 
-            matches.append((lemma_text(word), word.text)) 
+            matches.append((lemma_text(word), 'is a question/suggestion of ')) 
 
+            #matching verbs which denote an uncertain proposal/observation, also making sure 'no' is not in the parse
         elif (lemma_text(word)  in ['suspect','favour','suggest','suggesting','question','consider'])\
         and ('no' not in [w.text for w in word.children]):
 
-            matches.append((lemma_text(word), word.text))
-
+            matches.append((lemma_text(word), 'I suspect/suggest'))
+    
+    #there is concern/suspicion
         elif (lemma_text(word) in ['concern','suspicion'])\
         & ('no' not in [w.text for w in word.children]):
 
-            matches.append((lemma_text(word), word.text))
+            matches.append((lemma_text(word), 'there is concern/suspicion'))
 
+        #suspected
         elif (lemma_text(word)  in ['suspected'])\
         & ('nsubjpass' in [w.dep_ for w in word.children]) & ('no' not in [w.text for w in word.children]):
 
-            matches.append((lemma_text(word), word.text))
+            matches.append((lemma_text(word), 'X is suspected'))
 
+                    #possible
         elif (lemma_text(word) == 'possible') & \
         ('no' not in [w.text for w in word.children]):
 
-            matches.append((lemma_text(word), word.text)) 
+            matches.append((lemma_text(word), 'possible')) 
 
+        #maybe/perhaps
         elif (lemma_text(word) in ['maybe','perhaps']):
 
-            matches.append((lemma_text(word), word.text)) 
+            matches.append((lemma_text(word), 'maybe/perhaps')) 
 
+            #soft observation verbs with modality
         elif (lemma_text(word) in ['reflect','represent','indicate','include']):
             
             s = set(['may','could','would','might'])
@@ -71,44 +86,50 @@ def default_rules(doc):
             
             if s.intersection(p):
                 
-                matches.append((lemma_text(word), word.text)) 
+                matches.append((lemma_text(word), 'soft verbs w modality')) 
 
+                #modality and consequence -- could be because
         elif (lemma_text(word) in ['can','could','may','possibly','would']):
             
-            ancestor = [a for a in word.ancestors][0]
+            try:
+                ancestor = [a for a in word.ancestors][0]
 
-            for w in ancestor.children:
+                for w in ancestor.children:
 
-                if lemma_text(w) in ['down','due', 'thanks','because']:
+                    if lemma_text(w) in ['down','due', 'thanks','because']:
 
-                    matches.append((lemma_text, (word.text, w.text)))
-
+                        matches.append((lemma_text(w), 'modality and consequence'))
+            except:
+                
+                pass
+            
+            
+        # modality and relation
         elif (lemma_text(word) in ['could','can','may','would','possibly']):
 
             for w in word.children:
 
                 if lemma_text(w) == 'relate':
 
-                    matches.append((lemma_text(word), 'could relate to'))
+                    matches.append((lemma_text(word), 'modality and relation'))
 
+        #could be compatible
         elif (lemma_text(word) in ['could','may','would']):
             
-            print(lemma_text(word), 't print')
+            ancestor = [a for a in word.ancestors] 
             
-            ancestor = [a for a in word.ancestors]
-            
-            print(ancestor)
-
             for w in ancestor.children:
 
-                if lemma_text(w) == 'compatible':
+                if lemma_text(w) in ['compatible', 'representative']:
 
                     matches.append(lemma_text(word), 'could be compatible with')
-
+        
+        #cannot exclude
         elif lemma_text(word) in ['exclude', 'rule'] and 'not' in [lemma_text(w) for w in word.children]:
 
             matches.append((lemma_text(word), 'cannot exclude'))
 
+        #modality and copula search
         elif lemma_text(word) == 'be':
             
             s = set(['may','could','would','might'])
@@ -116,11 +137,11 @@ def default_rules(doc):
             
             if s.intersection(p):
                 
-                matches.append((lemma_text(word), 'may be'))
+                matches.append((lemma_text(word), 'modality and copularity'))
 
         elif (lemma_text(word) =='suggestive') & ('of' in [w.text for w in word.children]):
 
-            matches.append((lemma_text(word), 'may be'))
+            matches.append((lemma_text(word), 'suggestive of'))
     
     return matches
         

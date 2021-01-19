@@ -1,4 +1,4 @@
-# unBertainty
+# unBertainty (unfinished, work in progress, lots of bugs )
 
 
 This is UnBertainty, a set of tools written in python for handling uncertainty in radiology reports.

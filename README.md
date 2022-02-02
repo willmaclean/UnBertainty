@@ -1,4 +1,4 @@
-# unBertainty (unfinished, work in progress, lots of bugs )
+# unBertainty
 
 
 This is UnBertainty, a set of tools written in python for handling uncertainty in radiology reports.
@@ -29,10 +29,9 @@ For rules-based labelling, UnBertainty uses uncertainty cues from responses to t
 
 For ML labelling, UnBertainty uses BioBert, which is a version of Google's massive language model trained on a biomedical corpus.
 
-### Requirements 
+### Installation 
 
-1. HuggingFace Transformers, PyTorch, Keras, Tensorflow (2<)
-2. CUDA
-3. Biobert weights downloaded and accessible. Install Biobert here : https://github.com/dmis-lab/biobert
+`pip install -r requirements.txt`
+
 
 email willmaclean@gmail.com for problems.

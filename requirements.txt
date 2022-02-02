@@ -1,0 +1,11 @@
+boto3==1.20.46
+huggingface-hub==0.4.0
+keras==2.8.0
+numpy==1.22.1
+pandas==1.4.0
+pydantic==1.8.2
+spacy==3.2.1
+tokenizers==0.11.4
+torch==1.10.2
+transformers==4.16.2
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.0.0/en_core_web_sm-3.0.0.tar.gz#egg=en_core_web_sm

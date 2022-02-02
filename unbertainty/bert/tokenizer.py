@@ -1,27 +1,21 @@
-def tokenize(reports):
+import torch
+from transformers import BertTokenizer
+from keras.preprocessing.sequence import pad_sequences
+from collections.abc import Iterable
+from typing import Tuple, List
+
+
+def tokenize(reports: Iterable) -> Tuple(List, List):
     """
     Tokenizes and masks reports.
 
-    Accepts:
-
-    The cleaned texts.
-
-    Returns:
-    attention_masks
-    input_ids (sequences of tokenized words)
-
-    Biobert and keras must be installed
-
     """
-    import torch
-    from transformers import BertTokenizer
-    from keras.preprocessing.sequence import pad_sequences
 
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     tokenizer = BertTokenizer(vocab_file='biobert_v1.1_pubmed/vocab.txt', do_lower_case=False)
 
-# Tokenize all of the sentences and map the tokens to their word IDs.
+    # Tokenize all of the sentences and map the tokens to their word IDs.
     input_ids = []
     sentences = reports.texts.values
     
@@ -33,7 +27,7 @@ def tokenize(reports):
     #splitting the report for where there is a conclusion if there is one
     sentences = sentences[conc_loc:]
     
-# For every sentence..
+    # For every sentence..
     for sent in sentences:
         encoded_sent = tokenizer.encode(
                         sent,                      # Sentence to encode.
@@ -54,7 +48,7 @@ def tokenize(reports):
     input_ids = pad_sequences(input_ids, maxlen=MAX_LEN, dtype="long",
                               value=0, truncating="post", padding="post")
 
-#masking
+    #masking
     attention_masks = []
 
     for sent in input_ids:
@@ -63,4 +57,4 @@ def tokenize(reports):
         att_mask = [int(token_id > 0) for token_id in sent]
         attention_masks.append(att_mask)
 
-    return input_ids, attention_masks
+    return (input_ids, attention_masks)

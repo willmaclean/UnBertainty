@@ -25,6 +25,7 @@ import pandas as pd
 from transformers import BertForSequenceClassification, AdamW, BertConfig
 import numpy as np
 
+
 def flat_accuracy(preds, labels):
     pred_flat = np.argmax(preds, axis=1).flatten()
     labels_flat = labels.flatten()
@@ -266,7 +267,6 @@ if __name__ == '__main__':
 
     sys.stdout.write("Training complete!")
 
-    import os
 
     output_dir = 'saved_models'
 

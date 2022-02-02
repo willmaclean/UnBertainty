@@ -1,82 +1,122 @@
 import spacy
-nlp = spacy.load('en_core_web_sm')
 import os
 from clean import TextPreprocessor
 from spacy.pipeline import SentenceSegmenter
 from spacy.tokenizer import Tokenizer
 from spacy.lemmatizer import Lemmatizer
-from typing import List
+from typing import List, Dict
 from collections import defaultdict
 from spacy.pipeline import merge_entities
 from spacy.matcher import Matcher, DependencyMatcher
 from spacy.vocab import Vocab
 
+nlp = spacy.load('en_core_web_sm')
+
+
+QUESTIONABLE_LEMMAS = ['possible','possibly','presumably','probably','questionable','suspect','suspected','suspicious']
+
+
 def lemma_text(word):
     
     return nlp.vocab[word.lemma].text
 
-def default_rules(doc):
-
-    nlp = spacy.load('en_core_web_sm')
+class Rules(doc):
     
-    #these are the default uncertainty patterns to spot
-    
-    questionable_lemmas = ['possible','possibly','presumably','probably','questionable','suspect','suspected','suspicious']
     questionable_hashes = [nlp.vocab[word] for word in questionable_lemmas]
     aux = ['may', 'would', 'could']
     matches=[]
+
+    def __init__(
+                    self, 
+                    model: str = 'en_core_web_sm',
+                    override: Dict = None
+                ):
+        self.nlp = spacy.load(model)
+
     
-matches=[]
+    def _questionable_single_words(self, word):
+        match_lemmas = [
+                        'possible',
+                        'possibly',
+                        'presumably',
+                        'probably',
+                        'questionable',
+                        'suspect',
+                        'suspected',
+                        'suspicious', 
+                        'probable', 
+                        'potential'
+                      ]
+
+        return dict(code = 'QSW',   
+                    rule = (if lemma_text(word) in match_lemmas),
+                    description = 'single words showing questionability',
+                    match_lemmas=match_lemmas
+                    )
+                
+
+    def _modality(self, word):
+        match_lemmas = ['may', 'would', 'could']
+        return dict(
+                    code = 'MOD',
+                    rule = ((if lemma(text) in match_words) & (word.pos_ == 'AUX')),
+                    description = 'Modality'
+                    )
+
+    def _question_suggestion(self, word):
+        match_lemmas = ['question', 'suggestion']
+        return dict(
+            code = 'QSS',
+            rule = ((lemma_text(word) in match_lemmas) & (word.dep_ == 'attr')),,
+            description = 'is a question of suggestion of '
+            )
+
+    def _suspect_suggest(self, word):
+        match_lemmas = ['suspect','favour','suggest','suggesting','question','consider']
+        return dict(
+            code = 'SSS',
+            rule = (lemma_text(word) in match_lemmas and ('no' not in [w.text for w in word.children])),
+            description = 'Suspecting or suggesting'
+            )
+
+    def _concern_suspicion(self, word):
+        match_lemmas = ['concern','suspicion']
+        return dict(
+            code = 'CSN',
+            rule = (lemma_text(word) in match_lemmas) & ('no' not in [w.text for w in word.children]),
+            description = 'There is concern or suspicion'
+            )
+
+    def _suspected(self, word):
+        match_lemmas = ['suspected']
+        return dict(
+            code = 'SPC',
+            rule = (lemma_text(word)  in match_lemmas)
+                     & ('nsubjpass' in [w.dep_ for w in word.children]) & 
+                     ('no' not in [w.text for w in word.children]),
+            description = 'X is suspected')
+
+
+    def _possible(self, word):
+        return dict(
+            code = 'POS',
+            rule = (lemma_text(word) == 'possible') & ('no' not in [w.text for w in word.children]),
+            description = 'Possible')
+
+    def _maybe_perhaps(self, word):
+        match_lemmas = ['maybe','perhaps']
+        return dict(
+            code = 'MPS',
+            rule = (lemma_text(word) in match_lemmas),
+            description = 'Maybe or perhaps')
+
+    def _soft_modality(self, word):
+        match_lemmas = ['reflect','represent','indicate','include']
+        return dict(
+            code = 'SMO',
+            rule = (lemma_text(word) in match_lemmas),)
     
-    for word in doc:
-        
-#         iterates through each token in the spacy-tokenised doc and 
-#         checks if there is a match with a word or with a dependency pattern
-        
-    #single adjectives and adverbs which denote uncertainty of observation
-        if lemma_text(word) in ['possible','possibly','presumably','probably','questionable',\
-                                'suspect','suspected','suspicious', 'probable', 'potential']:
 
-            matches.append((lemma_text(word), 'single words showing questionability: possible, probably, etc.')) 
-        
-        #checking for modality
-        elif (word.pos_ == 'AUX') & (lemma_text(word) in ['may', 'would', 'could']):
-
-            matches.append((lemma_text(word), 'modality')) 
-
-        #question or suggestion in attributive dependency relation
-        elif (lemma_text(word) in ['question','suggestion']) & (word.dep_ == 'attr'):
-
-            matches.append((lemma_text(word), 'is a question/suggestion of ')) 
-
-            #matching verbs which denote an uncertain proposal/observation, also making sure 'no' is not in the parse
-        elif (lemma_text(word)  in ['suspect','favour','suggest','suggesting','question','consider'])\
-        and ('no' not in [w.text for w in word.children]):
-
-            matches.append((lemma_text(word), 'I suspect/suggest'))
-    
-    #there is concern/suspicion
-        elif (lemma_text(word) in ['concern','suspicion'])\
-        & ('no' not in [w.text for w in word.children]):
-
-            matches.append((lemma_text(word), 'there is concern/suspicion'))
-
-        #suspected
-        elif (lemma_text(word)  in ['suspected'])\
-        & ('nsubjpass' in [w.dep_ for w in word.children]) & ('no' not in [w.text for w in word.children]):
-
-            matches.append((lemma_text(word), 'X is suspected'))
-
-                    #possible
-        elif (lemma_text(word) == 'possible') & \
-        ('no' not in [w.text for w in word.children]):
-
-            matches.append((lemma_text(word), 'possible')) 
-
-        #maybe/perhaps
-        elif (lemma_text(word) in ['maybe','perhaps']):
-
-            matches.append((lemma_text(word), 'maybe/perhaps')) 
 
             #soft observation verbs with modality
         elif (lemma_text(word) in ['reflect','represent','indicate','include']):
